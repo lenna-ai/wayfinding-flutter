@@ -41,10 +41,11 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late SitumSdk situmSdk;
   MapViewController? mapViewController;
   Map<String, dynamic>? _responseData;
-  Random random = Random();
   bool _isLoading = true;
+  Random random = Random();
   int min = 1;
   int max = 100;
   var identifier;
@@ -82,17 +83,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> getArea() async {
-    final url =
-        Uri.parse('https://api-wayfinding.sinarmasland.com/backend/sps/areas');
-    final headers = {
-      "Content-Type": "application/json",
-    };
-    final response = await http.get(url, headers: headers);
-
-    print("response get area : ${json.decode(response.body)}");
-  }
-
   Future<void> fetchData() async {
     final url =
         Uri.parse('https://api-wayfinding.sinarmasland.com/backend/dashboard');
@@ -117,6 +107,17 @@ class _MyHomePageState extends State<MyHomePage> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> getArea() async {
+    final url =
+        Uri.parse('https://api-wayfinding.sinarmasland.com/backend/sps/areas');
+    final headers = {
+      "Content-Type": "application/json",
+    };
+    final response = await http.get(url, headers: headers);
+
+    print("response get area : ${json.decode(response.body)}");
   }
 
   @override
@@ -147,9 +148,9 @@ class _MyHomePageState extends State<MyHomePage> {
             child: MapView(
               key: const Key("situm_map"),
               configuration: MapViewConfiguration(
-                situmApiKey: situmApiKey,
-                buildingIdentifier: buildingIdentifier,
-              ),
+                  situmApiKey: situmApiKey,
+                  buildingIdentifier: buildingIdentifier,
+                  remoteIdentifier: 'lenna_parking'),
               onLoad: _onLoad,
             ),
           ),
@@ -173,7 +174,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _onLoad(MapViewController controller) {
     mapViewController = controller;
+    // MapView was loaded correctly,
+    // now you can send actions by using the MapViewController, for example:
+
     controller.navigateToPoi(identifier);
+    // controller.selectPoi(identifier);
+    // controller.navigateToPoi(identifier,
+    //     accessibilityMode: AccessibilityMode.CHOOSE_SHORTEST);
+    // controller.followUser();
+    // ...
   }
 
   void _useSitum() async {
@@ -192,6 +201,12 @@ class _MyHomePageState extends State<MyHomePage> {
     situmSdk.onLocationError((error) {
       debugPrint("Situm> sdk> Error: ${error.message}");
     });
+    situmSdk.onEnterGeofences((geofencesResult) {
+      _echo("Situm> SDK> Enter geofences: ${geofencesResult.geofences}.");
+    });
+    situmSdk.onExitGeofences((geofencesResult) {
+      _echo("Situm> SDK> Exit geofences: ${geofencesResult.geofences}.");
+    });
     // Check permissions:
     var hasPermissions = await _requestPermissions();
     if (hasPermissions) {
@@ -202,6 +217,10 @@ class _MyHomePageState extends State<MyHomePage> {
       // Handle permissions denial.
       debugPrint("Situm> sdk> Permissions denied!");
     }
+  }
+
+  void _removeUpdates() async {
+    situmSdk.removeUpdates();
   }
 
   // Requests positioning permissions
