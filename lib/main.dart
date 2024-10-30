@@ -59,6 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _useSitum();
   }
 
+//booking parking function
   Future<void> bookParking() async {
     final url = Uri.parse(
         'https://api-wayfinding.sinarmasland.com/backend/sps/Postbook');
@@ -83,6 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // get parking area
   Future<void> fetchData() async {
     final url =
         Uri.parse('https://api-wayfinding.sinarmasland.com/backend/dashboard');
