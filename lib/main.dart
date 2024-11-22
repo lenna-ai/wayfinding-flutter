@@ -174,18 +174,18 @@ class _MyHomePageState extends State<MyHomePage> {
     debugPrint('\x1B[31m$text\x1B[0m');
   }
 
-  void _onLoad(MapViewController controller) {
-    mapViewController = controller;
-    // MapView was loaded correctly,
-    // now you can send actions by using the MapViewController, for example:
 
+   void _onLoad(MapViewController controller) {
+    // Map successfully loaded: now you can register callbacks and perform
+    // actions over the map.
+    mapViewController = controller;
     controller.navigateToPoi(identifier);
-    // controller.selectPoi(identifier);
-    // controller.navigateToPoi(identifier,
-    //     accessibilityMode: AccessibilityMode.CHOOSE_SHORTEST);
-    // controller.followUser();
-    // ...
+    // debugPrint("Situm> wayfinding> Map successfully loaded.");
+    // controller.onPoiSelected((poiSelectedResult) {
+    //   debugPrint("Situm> wayfinding> Poi selected: ${poiSelectedResult.poi.name}");
+    // });
   }
+
 
   void _useSitum() async {
     var situmSdk = SitumSdk();
@@ -194,20 +194,13 @@ class _MyHomePageState extends State<MyHomePage> {
     situmSdk.setApiKey(situmApiKey);
     // Set up location callbacks:
     situmSdk.onLocationUpdate((location) {
-      debugPrint(
-          "Situm> sdk> Location updated: ${location.toMap().toString()}");
+      debugPrint("Situm> sdk> Location updated: ${location.toMap().toString()}");
     });
     situmSdk.onLocationStatus((status) {
       debugPrint("Situm> sdk> Status: $status");
     });
     situmSdk.onLocationError((error) {
       debugPrint("Situm> sdk> Error: ${error.message}");
-    });
-    situmSdk.onEnterGeofences((geofencesResult) {
-      _echo("Situm> SDK> Enter geofences: ${geofencesResult.geofences}.");
-    });
-    situmSdk.onExitGeofences((geofencesResult) {
-      _echo("Situm> SDK> Exit geofences: ${geofencesResult.geofences}.");
     });
     // Check permissions:
     var hasPermissions = await _requestPermissions();
@@ -225,7 +218,7 @@ class _MyHomePageState extends State<MyHomePage> {
     situmSdk.removeUpdates();
   }
 
-  // Requests positioning permissions
+    // Requests positioning permissions
   Future<bool> _requestPermissions() async {
     var permissions = <Permission>[
       Permission.locationWhenInUse,
@@ -235,8 +228,6 @@ class _MyHomePageState extends State<MyHomePage> {
         Permission.bluetoothConnect,
         Permission.bluetoothScan,
       ]);
-    } else if (Platform.isIOS) {
-      permissions.add(Permission.bluetooth);
     }
     Map<Permission, PermissionStatus> statuses = await permissions.request();
     return statuses.values.every((status) => status.isGranted);
