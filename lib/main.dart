@@ -2,6 +2,7 @@ import 'dart:convert';
 import "dart:io";
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:get/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 //Step 1 - Importing Situm
@@ -48,6 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Random random = Random();
   int min = 1;
   int max = 100;
+  late String lastParking = 'Loading...';
   var identifier;
 
   @override
@@ -56,7 +58,57 @@ class _MyHomePageState extends State<MyHomePage> {
     fetchData();
     bookParking();
     getArea();
+    getHistoryParking();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showModal(context);
+    });
     _useSitum();
+  }
+
+  Future<void> postHistoryParking(String params) async {
+    final url = Uri.parse(
+        'https://api-wayfinding.sinarmasland.com/backend/dashboard/createAreaParkir');
+    final headers = {
+      "Content-Type": "application/json",
+    };
+    final body = json.encode({
+      // "userID": "test${random.nextInt(max - min + 1) + min}",
+      "userID": "user12345",
+      "AreaParkir": params
+    });
+    final response = await http.post(url, headers: headers, body: body);
+    final Map<String, dynamic> parsedJson = json.decode(response.body);
+    print("ini adalah response post history :  $parsedJson");
+  }
+
+  Future<void> getHistoryParking() async {
+    final url = Uri.parse(
+        'https://api-wayfinding.sinarmasland.com/backend/dashboard/getAreaParkir?user_id=user12345&page=0&page_size=0');
+    final headers = {
+      "Content-Type": "application/json",
+    };
+    // final body = json.encode({
+    //   "userID": "user12345",
+    // });
+    final response = await http.get(url, headers: headers);
+    Map<String, dynamic> parsedJson = json.decode(response.body);
+
+    print('ini body response : $parsedJson');
+
+    // Extract the 'data' list
+    List<dynamic> data = parsedJson['data'];
+
+    // Check if the list is not empty and get the last element
+    if (data.isNotEmpty) {
+      String areaParkir = data.last['AreaParkir']; // Access 'AreaParkir'
+      print('Area Parkir of Last Data: $areaParkir');
+      setState(() {
+        lastParking = areaParkir;
+      });
+    } else {
+      print('No data available.');
+    }
   }
 
 //booking parking function
@@ -74,6 +126,9 @@ class _MyHomePageState extends State<MyHomePage> {
     final String area = parsedJson['Body']['data'][0]['area'];
     var result = DataArea.firstWhere((element) => element["area"] == area,
         orElse: () => {});
+
+    // print("area:  $area");
+    postHistoryParking(area);
 
     if (result != null) {
       setState(() {
@@ -132,15 +187,30 @@ class _MyHomePageState extends State<MyHomePage> {
           'Biomedical Campus',
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          Row(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(right: 20.0), // Adds spacing
+                child: Text(
+                  lastParking, // Display the last parking value
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      //Step 3 - Showing the building cartography using the MapView
       body: Container(
         decoration: BoxDecoration(
           color: Colors.red[400],
         ),
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
         child: Center(
-          //MapView widget will visualize the building cartography
           child: Container(
             padding: EdgeInsets.all(8.0),
             decoration: BoxDecoration(
@@ -150,14 +220,60 @@ class _MyHomePageState extends State<MyHomePage> {
             child: MapView(
               key: const Key("situm_map"),
               configuration: MapViewConfiguration(
-                  situmApiKey: situmApiKey,
-                  buildingIdentifier: buildingIdentifier,
-                  remoteIdentifier: 'lenna_parking'),
+                situmApiKey: situmApiKey,
+                buildingIdentifier: buildingIdentifier,
+                remoteIdentifier: 'lenna_parking',
+              ),
               onLoad: _onLoad,
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Peringatan',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Harap diingat, aplikasi Wayfinding ini dirancang untuk digunakan hanya saat Anda berada di area parkir. Memulai aplikasi sebelum tiba di lokasi parkir dapat menyebabkan informasi yang ditampilkan tidak akurat dan mengurangi pengalaman pengguna.',
+                textAlign: TextAlign.start,
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Jangan mulai pencarian parkir melalui aplikasi ini sebelum Anda berada di area parkir yang dituju.',
+                textAlign: TextAlign.start,
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -174,8 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
     debugPrint('\x1B[31m$text\x1B[0m');
   }
 
-
-   void _onLoad(MapViewController controller) {
+  void _onLoad(MapViewController controller) {
     // Map successfully loaded: now you can register callbacks and perform
     // actions over the map.
     mapViewController = controller;
@@ -186,7 +301,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // });
   }
 
-
   void _useSitum() async {
     var situmSdk = SitumSdk();
     // Set up your credentials
@@ -194,7 +308,8 @@ class _MyHomePageState extends State<MyHomePage> {
     situmSdk.setApiKey(situmApiKey);
     // Set up location callbacks:
     situmSdk.onLocationUpdate((location) {
-      debugPrint("Situm> sdk> Location updated: ${location.toMap().toString()}");
+      debugPrint(
+          "Situm> sdk> Location updated: ${location.toMap().toString()}");
     });
     situmSdk.onLocationStatus((status) {
       debugPrint("Situm> sdk> Status: $status");
@@ -218,7 +333,7 @@ class _MyHomePageState extends State<MyHomePage> {
     situmSdk.removeUpdates();
   }
 
-    // Requests positioning permissions
+  // Requests positioning permissions
   Future<bool> _requestPermissions() async {
     var permissions = <Permission>[
       Permission.locationWhenInUse,
