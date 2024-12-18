@@ -101,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Check if the list is not empty and get the last element
     if (data.isNotEmpty) {
-      String areaParkir = data.last['AreaParkir']; // Access 'AreaParkir'
+      String areaParkir = data.first['AreaParkir']; // Access 'AreaParkir'
       print('Area Parkir of Last Data: $areaParkir');
       setState(() {
         lastParking = areaParkir;
@@ -127,8 +127,9 @@ class _MyHomePageState extends State<MyHomePage> {
     var result = DataArea.firstWhere((element) => element["area"] == area,
         orElse: () => {});
 
-    // print("area:  $area");
+    print("area yang di post :  $area");
     postHistoryParking(area);
+    
 
     if (result != null) {
       setState(() {
@@ -296,9 +297,9 @@ class _MyHomePageState extends State<MyHomePage> {
     mapViewController = controller;
     controller.navigateToPoi(identifier);
     // debugPrint("Situm> wayfinding> Map successfully loaded.");
-    // controller.onPoiSelected((poiSelectedResult) {
-    //   debugPrint("Situm> wayfinding> Poi selected: ${poiSelectedResult.poi.name}");
-    // });
+    controller.onPoiSelected((poiSelectedResult) {
+      debugPrint("Situm> wayfinding> Poi selected: ${poiSelectedResult.poi.identifier}");
+    });
   }
 
   void _useSitum() async {
